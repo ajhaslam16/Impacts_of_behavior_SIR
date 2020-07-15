@@ -13,7 +13,7 @@ Created on Tue Jul 14 12:42:31 2020
 
 import numpy as np
 from scipy.integrate import odeint
-
+import matplotlib.pyplot as plt
 
 """
 ########## MATLAB code from Erik & Steve ###########
@@ -189,9 +189,13 @@ def payoff_difference(M):
     
     return Delta_P
 
-def plot_I_S(model_solution):
+def plot_I_S(time, I_S):
     
+    fig, ax = plt.subplots()      
+    ax.plot(time, I_S)
     
+    ax.set(xlabel='time (days)', ylabel='Level of Symptomatic Infective Individuals')
+    ax.grid()
     
     return
 
@@ -218,7 +222,7 @@ def main():
     
     solution = odeint(ODE_system,Initial_state,time)
     
-    plot_I_S(solution)
+    plot_I_S(time, solution[2])
     
     
     return
