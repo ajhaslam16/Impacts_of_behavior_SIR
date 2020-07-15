@@ -8,7 +8,7 @@ AIM-MCRN Dynamics and Data
 
 Created on Tue Jul 14 12:42:31 2020
 
-@author: Alanna Haslam
+@author: Alanna J. Haslam
 """
 
 import numpy as np
