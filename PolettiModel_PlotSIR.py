@@ -3,6 +3,7 @@
 """
 The Poletti Model
 SIR with social behavioral changes
+adapted to plot all three compartment types
 
 AIM-MCRN Dynamics and Data 
 
