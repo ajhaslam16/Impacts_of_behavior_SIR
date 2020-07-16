@@ -15,48 +15,6 @@ import numpy as np
 from scipy.integrate import odeint
 import matplotlib.pyplot as plt
 
-"""
-########## MATLAB code from Erik & Steve ###########
-
-
-%% SIx model from S. Schechter's paper %%
-% Inputs: 
-% T = time, unused but required for Matlab's ode45
-% a = state variable at time T
-%
-% Outputs:
-% aprime = derivative given by SIx model 
-%%
-function aprime = six(T,x)
-%S' = − (βnx + βa(1 − x))*SI,                                  (4.1)
-%I˙ =   (βnx + βa(1 - x))* SI - γ*I,                           (4.2)
-%x˙ =   x(1 − x)(βa − βn)I + x(1 − x)(k − (mn − ma)I)/eps.         (4.3)
-% parameters
-epsilon = 2.E-3;
-ba = 0.1;
-bn = 0.5; 
-gamma = 1/6;
-k = 0.3;
-mn = 5;
-ma = 2;
-%aprime= [-(bn*x(3)+ba*(1-x(3)))*x(1)*x(2); ...
-%         (bn*x(3)+ba*(1-x(3)))*x(1)*x(2) - gamma*x(2); ...
-%         x(3)*(1-x(3))*(ba-bn)*x(2) + x(3)*(1-x(3))*(k-(mn-ma)*x(2))/epsilon; ...
-%         -(x(3)*(1-x(3))*(ba-bn)*x(2) + x(3)*(1-x(3))*(k-(mn-ma)*x(2))/epsilon)];
-%In t: (4.1)-(4.3)
-%aprime= [-(bn*x(3)+ba*x(4))*x(1)*x(2); ...
-%         (bn*x(3)+ba*x(4))*x(1)*x(2) - gamma*x(2); ...
-%         x(3)*x(4)*(ba-bn)*x(2) + x(3)*x(4)*(k-(mn-ma)*x(2))/epsilon; ...
-%         -(x(3)*x(4)*(ba-bn)*x(2) + x(3)*x(4)*(k-(mn-ma)*x(2))/epsilon)];
-%In tau: (4.4)-(4.6)
-aprime= [epsilon*(-(bn*x(3)+ba*x(4))*x(1)*x(2)); ...
-         epsilon*((bn*x(3)+ba*x(4))*x(1)*x(2) - gamma*x(2)); ...
-         epsilon*(x(3)*x(4)*(ba-bn)*x(2) + x(3)*x(4)*(k-(mn-ma)*x(2))/epsilon); ...
-         epsilon*(-(x(3)*x(4)*(ba-bn)*x(2) + x(3)*x(4)*(k-(mn-ma)*x(2))/epsilon))];
-end 
-
-"""
-
 
 ## Global parameters ##
 
@@ -97,10 +55,13 @@ This is the version of the Poletti model from equation (3) on page 83 of the
 in their analysis because it does not assume that x:(1-x) gives the same ratio
 for S, I_A, and R. 
 '''
-def ODE_system(State_vector, t):
+def ODE_system(State_vector,t):
     
-    epi_compartments = State_vector[:num_compartments]
-    behavior_variables = State_vector[num_compartments:]
+#    epi_compartments = State_vector[:num_compartments]
+#    behavior_variables = State_vector[num_compartments:]
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
     
     S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
     M = behavior_variables
@@ -162,6 +123,7 @@ def ODE_system(State_vector, t):
         
     deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
                       RS_dot, RAn_dot, RAa_dot, M_dot])
+#    deriv = np.zeros(9)
     
     return deriv
 
@@ -212,17 +174,17 @@ def main():
     
     M_0 = 0.0001  # prior belief of risk (or "overestimation" of risk)
     
-    Initial_state = np.array([Sn_0,Sa_0,IS_0,IAn_0,IAa_0,RS_0,RAn_0,RAa_0,M_0])
+    initial_state = np.array([Sn_0,Sa_0,IS_0,IAn_0,IAa_0,RS_0,RAn_0,RAa_0,M_0])
     
-    if np.sum(Initial_state)- M_0 != 1:
+    if np.sum(initial_state)- M_0 != 1:
         print("Error: make sure population sums to 1")
         return
     
-    time = np.arange(0,120,0.01)
+    t = np.arange(0,10,0.001)
     
-    solution = odeint(ODE_system,Initial_state,time)
+    solution = odeint(ODE_system,initial_state,t)
     
-    plot_I_S(time, solution[2])
+    plot_I_S(t, solution[:,2])
     
     
     return
