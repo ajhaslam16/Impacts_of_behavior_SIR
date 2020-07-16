@@ -106,38 +106,65 @@ def ODE_system(State_vector,t):
     ## intra-compartment imitation:
     
     Sn_dot += rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
-    Sa_dot += rho*(S_n*S_a*Delta_P - mu*S_a + mu*S_n)
+    Sa_dot += -rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
     
     IAn_dot += rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
-    IAa_dot += rho*(I_An*I_Aa*Delta_P - mu*I_Aa + mu*I_An)
+    IAa_dot += -rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
     
     RAn_dot += rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
-    RAa_dot += rho*(R_An*R_Aa*Delta_P - mu*R_Aa + mu*R_An)
+    RAa_dot += -rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
     
     
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    
+    # if Delta_P <0
+    
+    Sn_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    Sa_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    IAn_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    IAa_dot += -rho*I_An*(S_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    RAn_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    RAa_dot += -rho*R_An*(I_Aa+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    
+    
+    ### Giving up on the if statements for continuity issues. ###
     ## inter-compartment imitation:
     
-    if Delta_P > 0: # note that sign should still be the same since k>0
-        
-        Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P
-        Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P
-        
-        IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P
-        IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P
-        
-        RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P
-        RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P
-        
-    elif Delta_P <0: # is the sign correct here? Should it be abs[Delta_P]?
-        
-        Sn_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P
-        Sa_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P
-        
-        IAn_dot += -rho*I_An*(S_a+R_Aa)*Delta_P
-        IAa_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P
-        
-        RAn_dot += -rho*R_An*(I_Aa+S_a)*Delta_P
-        RAa_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P
+#    if Delta_P > 0: # note that sign should still be the same since k>0
+#        
+#        Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P
+#        Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P
+#        
+#        IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P
+#        IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P
+#        
+#        RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P
+#        RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P
+#        
+#    elif Delta_P <0: # is the sign correct here? Should it be abs[Delta_P]?
+#        
+#        Sn_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P
+#        Sa_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P
+#        
+#        IAn_dot += -rho*I_An*(S_a+R_Aa)*Delta_P
+#        IAa_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P
+#        
+#        RAn_dot += -rho*R_An*(I_Aa+S_a)*Delta_P
+#        RAa_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P
         
     deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
                       RS_dot, RAn_dot, RAa_dot, M_dot])
@@ -188,7 +215,6 @@ def plot_SIR(time, solution, reg_SIR=False):
     
     ax.set(xlabel='time (days)', ylabel='SIR Dynamics')
     ax.set_ylim((0,1))
-    ax.set_xlim((0,1))
     ax.grid()
     
     return
@@ -212,7 +238,7 @@ def main():
         print("Error: make sure population sums to 1")
         return
     
-    t = np.arange(0,100,0.0001)
+    t = np.arange(0,100,0.0005)
     
     solution = odeint(ODE_system,initial_state,t)
 #    solution = odeint(SIR_system, np.array([0.99,0.01,0]),t)
