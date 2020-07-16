@@ -50,6 +50,23 @@ rho = 10 #k*omega/alpha   # speed of behavioral changes (1/days)
 mu = 10**(-8)  #mu_tilde/(omega*k) # irrational exploration with fixed units
 
 
+
+'''
+SIR model
+'''
+def SIR_system(State_vector, t):
+    
+    S, I, R = State_vector
+    
+    S_dot = -beta_S*S*I
+    I_dot = beta_S*S*I - gamma*I
+    R_dot = gamma*I
+    
+    deriv = np.array([S_dot, I_dot, R_dot])
+    
+    return deriv
+
+
 '''
 This is the version of the Poletti model from equation (3) on page 83 of the
 2012 paper. This model is different from the model that Poletti et. al. use
@@ -146,25 +163,30 @@ def payoff_difference(M):
     
 #    P_n = -m_n*M
 #    P_a = -k - m_a*M
-#    Delta_P = P_n-P_a   # most intuitive
+#    Delta_P = P_n-P_a # k - (m_n-m_a)*M  # most intuitive
     
-    Delta_P  = 1-m*M    # note: divided by extra k that will be fixed with rho
+    Delta_P  = 1-m*M  # k*(1-m*M) = the real Delta_P  # note: divided by extra k that will be fixed with rho
     
     return Delta_P
 
-def plot_SIR(time, solution):
+def plot_SIR(time, solution, reg_SIR=False):
     
     fig, ax = plt.subplots()  
-
-    S = solution[:,0]+solution[:,1]
-    I = solution[:,2]+solution[:,3]+solution[:,4]
-    R = solution[:,5]+solution[:,6]+solution[:,7]
+    
+    if reg_SIR == False:
+        S = solution[:,0]+solution[:,1]
+        I = solution[:,2]+solution[:,3]+solution[:,4]
+        R = solution[:,5]+solution[:,6]+solution[:,7]
+    else:
+        S = solution[:,0]
+        I = solution[:,1]
+        R = solution[:,2]
 
     ax.plot(time, S, '-b')
     ax.plot(time, I, '-r')
     ax.plot(time, R, '-g')
     
-    ax.set(xlabel='time (days)', ylabel='Level of Symptomatic Infective Individuals')
+    ax.set(xlabel='time (days)', ylabel='SIR Dynamics')
     ax.grid()
     
     return
@@ -188,11 +210,12 @@ def main():
         print("Error: make sure population sums to 1")
         return
     
-    t = np.arange(0,10,0.001)
+    t = np.arange(0,100,0.01)
     
-    solution = odeint(ODE_system,initial_state,t)
+#    solution = odeint(ODE_system,initial_state,t)
+    solution = odeint(SIR_system, np.array([0.99,0.01,0]),t)
     
-    plot_SIR(t, solution)
+    plot_SIR(t, solution, reg_SIR=True)
     
     
     return
