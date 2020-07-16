@@ -187,6 +187,8 @@ def plot_SIR(time, solution, reg_SIR=False):
     ax.plot(time, R, '-g')
     
     ax.set(xlabel='time (days)', ylabel='SIR Dynamics')
+    ax.set_ylim((0,1))
+    ax.set_xlim((0,1))
     ax.grid()
     
     return
@@ -210,12 +212,12 @@ def main():
         print("Error: make sure population sums to 1")
         return
     
-    t = np.arange(0,100,0.01)
+    t = np.arange(0,100,0.0001)
     
-#    solution = odeint(ODE_system,initial_state,t)
-    solution = odeint(SIR_system, np.array([0.99,0.01,0]),t)
+    solution = odeint(ODE_system,initial_state,t)
+#    solution = odeint(SIR_system, np.array([0.99,0.01,0]),t)
     
-    plot_SIR(t, solution, reg_SIR=True)
+    plot_SIR(t, solution)
     
     
     return
