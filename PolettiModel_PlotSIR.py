@@ -75,7 +75,7 @@ def ODE_system(State_vector,t):
     
     IS_dot  = p*(lambda_t*S_n + q*lambda_t*S_a) - gamma*I_S
     IAn_dot = (1-p)*lambda_t*S_n - gamma*I_An
-    IAa_dot = (1-p)*lambda_t*S_a - gamma*I_Aa
+    IAa_dot = (1-p)*q*lambda_t*S_a - gamma*I_Aa
     
     RS_dot  = gamma*I_S
     RAn_dot = gamma*I_An
