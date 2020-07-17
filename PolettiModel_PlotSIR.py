@@ -209,13 +209,14 @@ def plot_SIR(time, solution, reg_SIR=False):
         I = solution[:,1]
         R = solution[:,2]
 
-    ax.plot(time, S, '-b')
-    ax.plot(time, I, '-r')
-    ax.plot(time, R, '-g')
+    S_curve, = ax.plot(time, S, '-b')
+    I_curve, = ax.plot(time, I, '-r')
+    R_curve, = ax.plot(time, R, '-g')
     
     ax.set(xlabel='time (days)', ylabel='SIR Dynamics')
     ax.set_ylim((0,1))
     ax.grid()
+    ax.legend((S_curve,I_curve,R_curve),('S','I','R'),loc='best')
     
     return
 
