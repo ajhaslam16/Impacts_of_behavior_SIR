@@ -180,7 +180,7 @@ def ODE_system(State_vector,t, params=params):
     RAa_dot = gamma*I_Aa
     
     ### second add the imitation and behavior switching dynamics ###
-    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*I_S
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
     
     Delta_P = payoff_difference(M) #note: this still has extra k divided 
     
