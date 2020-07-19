@@ -150,12 +150,12 @@ By default it is the hardwired global parameters defined in this file.
 Note that if you want to include this additional argument when calling odeint,
 you must write:
     
-    odeint(SIR_system, State_vector, t, args=(params,))
+    odeint(SIRan_system, State_vector, t, args=(params,))
     
     * Note the comma.
 
 '''
-def ODE_system(State_vector,t, params=params):
+def SIRan_system(State_vector,t, params=params):
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
     
