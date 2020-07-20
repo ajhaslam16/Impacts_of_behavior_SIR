@@ -25,46 +25,12 @@ import numpy as np
 
 
 
-## Global Parameters##
-
-recovery_days = 2.8 # average length of infection (current baseline from 2012)
-gamma = 1/recovery_days # rate of recovery
-
-beta_S = 0.5 # infection rate for symptomatic infectives
-beta_A = 0.5 # infection rate for asymptomatic infectives
-
-q = 0.85  # reduction factor for those with altered/adjusted behavior
-p = 0.6   # probability of developing symptoms
-
-
-avg_memory = 10   # average length of memory regarding active cases
-nu  = 1/avg_memory  # rate of forgetting past "new case" counts
-
-#m_n = # percieved risk of infection without adjusting behavior
-#m_a = # percieved risk of infection while using adjusted behavior
-#k =  # constant cost of having adjusted behavior
-M_thresh = 0.01 # risk threshold ... k/(m_n-m_a)
-m = 1/M_thresh
-
-#omega_tilde = # rate at which individuals meet
-#phi =         # proportionality constant for how risk perception linearly relates to switching
-#omega = omega_tilde*phi
-#alpha =       # timescale factor ... t (slow) / tau(fast)
-rho = 10 #k*omega/alpha   # speed of behavioral changes (1/days)
-
-#mu_tilde = # irrational exploration (randomness)
-mu = 10**(-8)  #mu_tilde/(omega*k) # irrational exploration with fixed units
-
-
-
-params = [gamma,beta_S, beta_A, q, p, nu, m, rho, mu]
-
-
 '''
-Set the parameters to be different.
+Set the parameters. Default for all is currently the baseline parameters from
+Poletti 2012.
 '''
-def get_params(gamma0=gamma, beta_S0=beta_S, beta_A0=beta_A,
-              q0=q,p0=p, nu0=nu, m0=m, rho0=rho, mu0=mu):
+def get_params(gamma=(1/2.8), beta_S=0.5, beta_A=0.5,
+              q=0.85, p=1, nu=(1/2.8), m=(1/0.01), rho=10, mu=(10**(-8))):
     
     params = [gamma,beta_S, beta_A, q, p, nu, m, rho, mu]
     
@@ -75,7 +41,7 @@ def get_params(gamma0=gamma, beta_S0=beta_S, beta_A0=beta_A,
 '''
 Classic SIR model
 
-params is an optional argument which should be a list of 8 parameter values.
+params is a list of 8 parameter values.
 By default it is the hardwired global parameters defined in this file. 
 
 Note that if you want to include this additional argument when calling odeint,
@@ -86,7 +52,7 @@ you must write:
     * Note the comma.
 
 '''
-def SIR_system(State_vector, t, params=params):
+def SIR_system(State_vector, t, params):
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
     
@@ -112,7 +78,7 @@ Helper function for Poletti model
 Gives the force of infection (or lambda) given the current number of infected
 individuals in each respective infected compartments.
 '''
-def force_of_infection(I_S, I_An, I_Aa, params=params):
+def force_of_infection(I_S, I_An, I_Aa, params):
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
 
@@ -126,7 +92,7 @@ Helper function for Poletti model
 Gives P_n-P_a as guage of which behavior is more advantageous as a function 
 of percieved number of cases (ie. perceived risk).
 '''
-def payoff_difference(M, params=params):
+def payoff_difference(M, params):
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
     
@@ -159,7 +125,9 @@ you must write:
     * Note the comma.
 
 '''
-def SIRan_system(State_vector,t, params=params):
+def SIRan_system(State_vector,t, params):
+    
+    print(params)
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
     
@@ -168,6 +136,9 @@ def SIRan_system(State_vector,t, params=params):
     
     S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
     M = behavior_variables
+    
+    print('avg memory length = {}'.format(1/nu))
+    print('does I_S = M?  \n\t I_S = {} \n\t M = {}'.format(I_S, M))
     
     lambda_t = force_of_infection(I_S, I_An, I_Aa)
     
