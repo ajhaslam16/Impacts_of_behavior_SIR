@@ -196,3 +196,192 @@ def SIRan_system(State_vector,t, params):
                       RS_dot, RAn_dot, RAa_dot, M_dot])
     
     return deriv
+  '''
+This is another updated version of the Poletti model from equation (3) on page 83 of the
+2012 paper, now including an "Exposed" category. Again, this model is different from the model that Poletti et. al. use
+in their analysis because it does not assume that x:(1-x) gives the same ratio
+for S, I_A, and R. Additionally, we have a compartment for exposed individuals (E), before
+they become infectious and (a)symptomatic.
+'''
+def SEIRan_system(State_vector,t, params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi = params
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, E_n, E_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    #additional Exposed compartment
+    En_dot = lambda_t*S_n - xi*E_n
+    Ea_dot = q*lambda_t*S_a - xi*E_a
+    
+    IS_dot  = p*xi*(E_n + E_a) - gamma*I_S
+    IAn_dot = (1-p)*xi*E_n - gamma*I_An
+    IAa_dot = (1-p)*q*xi*E_a - gamma*I_Aa
+    
+    RS_dot  = gamma*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    
+    Delta_P = payoff_difference(M, params = params) #note: this still has extra k divided 
+    
+    ## intra-compartment imitation:
+    
+    Sn_dot += rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    Sa_dot += -rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    
+    #exposed dynamics added in
+    En_dot += rho*(E_n*E_a*Delta_P + mu*E_a - mu*E_n)
+    Ea_dot += -rho*(E_n*E_a*Delta_P + mu*E_a - mu*E_n)
+    
+    IAn_dot += rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    IAa_dot += -rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    
+    RAn_dot += rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    RAa_dot += -rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    
+    
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*S_a*(E_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    Sa_dot += -rho*S_a*(E_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    En_dot += rho*E_a*(S_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    Ea_dot += -rho*E_a*(S_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    IAn_dot +=  rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    IAa_dot += -rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    RAn_dot +=  rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    RAa_dot += -rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    
+    # if Delta_P <0
+    
+    Sn_dot +=  rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    Sa_dot += -rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    En_dot += rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    Ea_dot += -rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    IAn_dot +=  rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    IAa_dot += -rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    RAn_dot +=  rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    RAa_dot += -rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    
+        
+    deriv = np.array([Sn_dot,Sa_dot,En_dot,Ea_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, M_dot])
+
+    return deriv
+
+
+  '''
+This is another updated version of the Poletti model from equation (3) on page 83 of the
+2012 paper. As before, we do not assume the same ratio for x:(1-x), as compared with S, I_A, and R.
+We again have a compartment for exposed individuals (E), before they become infectious and (a)symptomatic.  
+Additionally, this includes a death category, 
+when symptomatic infectious do not recover.
+'''
+def SEIRDan_system(State_vector,t,params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, deathdelt = params
+    
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, E_n, E_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa, D = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa,params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    #includes exposed category
+    En_dot = lambda_t*S_n - xi*E_n
+    Ea_dot = q*lambda_t*S_a - xi*E_a
+    
+    IS_dot  = p*xi*(E_n + E_a) - gamma*I_S
+    IAn_dot = (1-p)*xi*E_n - gamma*I_An
+    IAa_dot = (1-p)*q*xi*E_a - gamma*I_Aa
+    
+    #currently, D_dot does not incorporate imitation effects
+    D_dot = deathdelt*I_S
+    
+    RS_dot  = (gamma - delta)*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*I_S
+    
+    Delta_P = payoff_difference(M,params=params) #note: this still has extra k divided 
+    
+    ## intra-compartment imitation:
+    
+    Sn_dot += rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    Sa_dot += -rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    
+    En_dot += rho*(E_n*E_a*Delta_P + mu*E_a - mu*E_n)
+    Ea_dot += -rho*(E_n*E_a*Delta_P + mu*E_a - mu*E_n)
+    
+    IAn_dot += rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    IAa_dot += -rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    
+    RAn_dot += rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    RAa_dot += -rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    
+    
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*S_a*(E_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    Sa_dot += -rho*S_a*(E_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    En_dot += rho*E_a*(S_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    Ea_dot += -rho*E_a*(S_n+I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    IAn_dot +=  rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    IAa_dot += -rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    RAn_dot +=  rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    RAa_dot += -rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    
+    # if Delta_P <0
+    
+    Sn_dot +=  rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    Sa_dot += -rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    En_dot += rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    Ea_dot += -rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    IAn_dot +=  rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    IAa_dot += -rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    RAn_dot +=  rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    RAa_dot += -rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    
+        
+    deriv = np.array([Sn_dot,Sa_dot,En_dot,Ea_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, D_dot, M_dot])
+
+    return deriv
+
