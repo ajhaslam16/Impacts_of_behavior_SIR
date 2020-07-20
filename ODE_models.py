@@ -112,7 +112,9 @@ Helper function for Poletti model
 Gives the force of infection (or lambda) given the current number of infected
 individuals in each respective infected compartments.
 '''
-def force_of_infection(I_S, I_An, I_Aa):
+def force_of_infection(I_S, I_An, I_Aa, params=params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
 
     return beta_S*I_S+beta_A*I_An+q*beta_A*I_Aa
 
@@ -124,7 +126,9 @@ Helper function for Poletti model
 Gives P_n-P_a as guage of which behavior is more advantageous as a function 
 of percieved number of cases (ie. perceived risk).
 '''
-def payoff_difference(M):
+def payoff_difference(M, params=params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
     
 #    P_n = -m_n*M
 #    P_a = -k - m_a*M
@@ -182,7 +186,7 @@ def SIRan_system(State_vector,t, params=params):
     ### second add the imitation and behavior switching dynamics ###
     M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
     
-    Delta_P = payoff_difference(M) #note: this still has extra k divided 
+    Delta_P = payoff_difference(M, params=params) #note: this still has extra k divided 
     
     ## intra-compartment imitation:
     
