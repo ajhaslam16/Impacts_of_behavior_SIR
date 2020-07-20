@@ -17,8 +17,6 @@ externally set any combination of the parameters.
 
 
 Created on Fri Jul 17 12:07:27 2020
-
-@author: ajhaslam
 """
 
 import numpy as np
@@ -30,9 +28,10 @@ Set the parameters. Default for all is currently the baseline parameters from
 Poletti 2012.
 '''
 def get_params(gamma=(1/2.8), beta_S=0.5, beta_A=0.5,
-              q=0.85, p=1, nu=(1/2.8), m=(1/0.01), rho=10, mu=(10**(-8))):
+              q=0.85, p=1, nu=(1/2.8), m=(1/0.01), rho=10,
+              mu=(10**(-8)), xi=(1/3), dealthdelt=0.02):
     
-    params = [gamma,beta_S, beta_A, q, p, nu, m, rho, mu]
+    params = [gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt]
     
     return params
 
@@ -54,7 +53,7 @@ you must write:
 '''
 def SIR_system(State_vector, t, params):
     
-    gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
     
     S, I, R = State_vector
     
@@ -80,7 +79,7 @@ individuals in each respective infected compartments.
 '''
 def force_of_infection(I_S, I_An, I_Aa, params):
     
-    gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
 
     return beta_S*I_S+beta_A*I_An+q*beta_A*I_Aa
 
@@ -94,7 +93,7 @@ of percieved number of cases (ie. perceived risk).
 '''
 def payoff_difference(M, params):
     
-    gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
     
 #    P_n = -m_n*M
 #    P_a = -k - m_a*M
@@ -128,7 +127,7 @@ you must write:
 def SIRan_system(State_vector,t, params):
     
     
-    gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
     
     epi_compartments = State_vector[:-1]
     behavior_variables = State_vector[-1]
@@ -196,7 +195,9 @@ def SIRan_system(State_vector,t, params):
                       RS_dot, RAn_dot, RAa_dot, M_dot])
     
     return deriv
-  '''
+
+
+'''
 This is another updated version of the Poletti model from equation (3) on page 83 of the
 2012 paper, now including an "Exposed" category. Again, this model is different from the model that Poletti et. al. use
 in their analysis because it does not assume that x:(1-x) gives the same ratio
@@ -205,7 +206,7 @@ they become infectious and (a)symptomatic.
 '''
 def SEIRan_system(State_vector,t, params):
     
-    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi = params
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
     
     epi_compartments = State_vector[:-1]
     behavior_variables = State_vector[-1]
@@ -289,7 +290,7 @@ def SEIRan_system(State_vector,t, params):
     return deriv
 
 
-  '''
+'''
 This is another updated version of the Poletti model from equation (3) on page 83 of the
 2012 paper. As before, we do not assume the same ratio for x:(1-x), as compared with S, I_A, and R.
 We again have a compartment for exposed individuals (E), before they become infectious and (a)symptomatic.  
@@ -324,7 +325,7 @@ def SEIRDan_system(State_vector,t,params):
     #currently, D_dot does not incorporate imitation effects
     D_dot = deathdelt*I_S
     
-    RS_dot  = (gamma - delta)*I_S
+    RS_dot  = (gamma - deathdelt)*I_S
     RAn_dot = gamma*I_An
     RAa_dot = gamma*I_Aa
     
