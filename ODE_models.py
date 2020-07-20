@@ -127,7 +127,6 @@ you must write:
 '''
 def SIRan_system(State_vector,t, params):
     
-    print(params)
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu = params
     
@@ -137,10 +136,7 @@ def SIRan_system(State_vector,t, params):
     S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
     M = behavior_variables
     
-    print('avg memory length = {}'.format(1/nu))
-    print('does I_S = M?  \n\t I_S = {} \n\t M = {}'.format(I_S, M))
-    
-    lambda_t = force_of_infection(I_S, I_An, I_Aa)
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
     
     ### first establish the transmission dynamics ###
     Sn_dot = -lambda_t*S_n
