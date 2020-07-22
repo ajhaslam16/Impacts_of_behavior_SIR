@@ -330,7 +330,7 @@ def SEIRDan_system(State_vector,t,params):
     RAa_dot = gamma*I_Aa
     
     ### second add the imitation and behavior switching dynamics ###
-    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*I_S
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
     
     Delta_P = payoff_difference(M,params=params) #note: this still has extra k divided 
     
