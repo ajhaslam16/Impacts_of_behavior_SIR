@@ -233,7 +233,7 @@ def SEIRan_system(State_vector,t, params):
     RAa_dot = gamma*I_Aa
     
     ### second add the imitation and behavior switching dynamics ###
-    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    M_dot = p*(xi*(E_n + E_a)) - nu*M
     
     Delta_P = payoff_difference(M, params = params) #note: this still has extra k divided 
     
@@ -320,7 +320,7 @@ def SEIRDan_system(State_vector,t,params):
     
     IS_dot  = p*xi*(E_n + E_a) - gamma*I_S
     IAn_dot = (1-p)*xi*E_n - gamma*I_An
-    IAa_dot = (1-p)*q*xi*E_a - gamma*I_Aa
+    IAa_dot = (1-p)*xi*E_a - gamma*I_Aa
     
     #currently, D_dot does not incorporate imitation effects
     D_dot = deathdelt*I_S
@@ -330,7 +330,7 @@ def SEIRDan_system(State_vector,t,params):
     RAa_dot = gamma*I_Aa
     
     ### second add the imitation and behavior switching dynamics ###
-    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*I_S
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
     
     Delta_P = payoff_difference(M,params=params) #note: this still has extra k divided 
     
@@ -506,9 +506,7 @@ def payoffB_difference(M, S_a, I_Aa, R_Aa, params):
     
     return Delta_P
 
-
-
-'''
+ '''
 
 This is another updated version of the Poletti model from equation (3) on page 83 of the
 2012 paper, now including an "Exposed" category. Again, this model is different from the model that Poletti et. al. use
@@ -548,7 +546,7 @@ def SEIRant_system(State_vector,t, params):
     RAa_dot = gamma*I_Aa
     
     ### second add the imitation and behavior switching dynamics ###
-    M_dot = p*xi*(E_n + E_a) - nu*M
+    M_dot = p*(xi*(E_n + E_a)) - nu*M
     
     Delta_P = payoff_difference(M, params = params) #note: this still has extra k divided 
     
@@ -573,31 +571,31 @@ def SEIRant_system(State_vector,t, params):
     
     # if Delta_P >0:
     
-    Sn_dot +=  rho*S_a*(E_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    Sa_dot += -rho*S_a*(E_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    Sn_dot +=  rho*S_a*(E_n+I_An+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    Sa_dot += -rho*S_a*(E_n+I_An+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
-    En_dot += rho*E_a*(S_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    Ea_dot += -rho*E_a*(S_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    En_dot += rho*E_a*(S_n+I_An+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    Ea_dot += -rho*E_a*(S_n+I_An+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
-    IAn_dot +=  rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    IAa_dot += -rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    IAn_dot +=  rho*I_Aa*(S_n+E_n+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    IAa_dot += -rho*I_Aa*(S_n+E_n+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
-    RAn_dot +=  rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    RAa_dot += -rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    RAn_dot +=  rho*R_Aa*(E_n+I_An+S_n)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    RAa_dot += -rho*R_Aa*(E_n+I_An+S_n)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
     # if Delta_P <0
     
-    Sn_dot +=  rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    Sa_dot += -rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    Sn_dot +=  rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    Sa_dot += -rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     
-    En_dot += rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    Ea_dot += -rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    En_dot += rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    Ea_dot += -rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     
-    IAn_dot +=  rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    IAa_dot += -rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    IAn_dot +=  rho*I_An*(S_a+E_a+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    IAa_dot += -rho*I_An*(S_a+E_a+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     
-    RAn_dot +=  rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    RAa_dot += -rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    RAn_dot +=  rho*R_An*(I_Aa+E_a+S_a)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    RAa_dot += -rho*R_An*(I_Aa+E_a+S_a)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     
         
     deriv = np.array([Sn_dot,Sa_dot,En_dot,Ea_dot,IS_dot, IAn_dot, IAa_dot,\
@@ -605,10 +603,10 @@ def SEIRant_system(State_vector,t, params):
 
     return deriv
   
-'''
- SIR model with heaviside
- for this and the above model, could introduce parameter that determines steepness of arctan.
-'''
+  '''
+  SIR model with heaviside
+  for this and the above model, could introduce parameter that determines steepness of arctan.
+  '''
   
 def SIRant_system(State_vector,t, params):
     
@@ -656,25 +654,25 @@ def SIRant_system(State_vector,t, params):
     
     # if Delta_P >0:
     
-    Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
-    IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
-    RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
-    RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
+    RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P*(np.arctan(90*Delta_P)*(1/math.pi)+0.5)
     
     # if Delta_P <0
     
-    Sn_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    Sa_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    Sn_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    Sa_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     
-    IAn_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    IAa_dot += -rho*I_An*(S_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    IAn_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    IAa_dot += -rho*I_An*(S_a+R_Aa)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     
-    RAn_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
-    RAa_dot += -rho*R_An*(I_Aa+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    RAn_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+    RAa_dot += -rho*R_An*(I_Aa+S_a)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
 
 
     deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
@@ -682,3 +680,5 @@ def SIRant_system(State_vector,t, params):
     
     return deriv
 
+
+'''
