@@ -506,7 +506,9 @@ def payoffB_difference(M, S_a, I_Aa, R_Aa, params):
     
     return Delta_P
 
- '''
+
+
+'''
 
 This is another updated version of the Poletti model from equation (3) on page 83 of the
 2012 paper, now including an "Exposed" category. Again, this model is different from the model that Poletti et. al. use
@@ -539,14 +541,14 @@ def SEIRant_system(State_vector,t, params):
     
     IS_dot  = p*xi*(E_n + E_a) - gamma*I_S
     IAn_dot = (1-p)*xi*E_n - gamma*I_An
-    IAa_dot = (1-p)*q*xi*E_a - gamma*I_Aa
+    IAa_dot = (1-p)*xi*E_a - gamma*I_Aa
     
     RS_dot  = gamma*I_S
     RAn_dot = gamma*I_An
     RAa_dot = gamma*I_Aa
     
     ### second add the imitation and behavior switching dynamics ###
-    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    M_dot = p*xi*(E_n + E_a) - nu*M
     
     Delta_P = payoff_difference(M, params = params) #note: this still has extra k divided 
     
@@ -603,10 +605,10 @@ def SEIRant_system(State_vector,t, params):
 
     return deriv
   
-  '''
-  SIR model with heaviside
-  for this and the above model, could introduce parameter that determines steepness of arctan.
-  '''
+'''
+ SIR model with heaviside
+ for this and the above model, could introduce parameter that determines steepness of arctan.
+'''
   
 def SIRant_system(State_vector,t, params):
     
@@ -680,5 +682,3 @@ def SIRant_system(State_vector,t, params):
     
     return deriv
 
-
-'''
