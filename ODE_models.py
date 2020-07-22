@@ -20,7 +20,7 @@ Created on Fri Jul 17 12:07:27 2020
 """
 
 import numpy as np
-
+import math
 
 
 '''
@@ -505,3 +505,180 @@ def payoffB_difference(M, S_a, I_Aa, R_Aa, params):
     Delta_P  = 1-m*((1-q*(S_a + I_Aa + R_Aa))*(1-p)*(1/p) +1)*M  # note: divided by extra k that will be fixed with rho
     
     return Delta_P
+
+ '''
+
+This is another updated version of the Poletti model from equation (3) on page 83 of the
+2012 paper, now including an "Exposed" category. Again, this model is different from the model that Poletti et. al. use
+in their analysis because it does not assume that x:(1-x) gives the same ratio
+for S, I_A, and R. Additionally, we have a compartment for exposed individuals (E), before
+they become infectious and (a)symptomatic.
+
+Now, this SEIR model uses arctan as opposed to Heaviside.
+
+'''
+def SEIRant_system(State_vector,t, params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, E_n, E_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    #additional Exposed compartment
+    En_dot = lambda_t*S_n - xi*E_n
+    Ea_dot = q*lambda_t*S_a - xi*E_a
+    
+    IS_dot  = p*xi*(E_n + E_a) - gamma*I_S
+    IAn_dot = (1-p)*xi*E_n - gamma*I_An
+    IAa_dot = (1-p)*q*xi*E_a - gamma*I_Aa
+    
+    RS_dot  = gamma*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    
+    Delta_P = payoff_difference(M, params = params) #note: this still has extra k divided 
+    
+    ## intra-compartment imitation:
+    
+    Sn_dot += rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    Sa_dot += -rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    
+    #exposed dynamics added in
+    En_dot += rho*(E_n*E_a*Delta_P + mu*E_a - mu*E_n)
+    Ea_dot += -rho*(E_n*E_a*Delta_P + mu*E_a - mu*E_n)
+    
+    IAn_dot += rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    IAa_dot += -rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    
+    RAn_dot += rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    RAa_dot += -rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    
+    
+     ## inter-compartment imitation:
+        ## includes arctan as opposed to heaviside
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*S_a*(E_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    Sa_dot += -rho*S_a*(E_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    En_dot += rho*E_a*(S_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    Ea_dot += -rho*E_a*(S_n+I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    IAn_dot +=  rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    IAa_dot += -rho*I_Aa*(S_n+E_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    RAn_dot +=  rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    RAa_dot += -rho*R_Aa*(E_n+I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    # if Delta_P <0
+    
+    Sn_dot +=  rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    Sa_dot += -rho*S_n*(E_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    
+    En_dot += rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    Ea_dot += -rho*E_n*(S_a+I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    
+    IAn_dot +=  rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    IAa_dot += -rho*I_An*(S_a+E_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    
+    RAn_dot +=  rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    RAa_dot += -rho*R_An*(I_Aa+E_a+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    
+        
+    deriv = np.array([Sn_dot,Sa_dot,En_dot,Ea_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, M_dot])
+
+    return deriv
+  
+  '''
+  SIR model with heaviside
+  for this and the above model, could introduce parameter that determines steepness of arctan.
+  '''
+  
+def SIRant_system(State_vector,t, params):
+    
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    IS_dot  = p*(lambda_t*S_n + q*lambda_t*S_a) - gamma*I_S
+    IAn_dot = (1-p)*lambda_t*S_n - gamma*I_An
+    IAa_dot = (1-p)*q*lambda_t*S_a - gamma*I_Aa
+    
+    RS_dot  = gamma*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    
+    Delta_P = payoff_difference(M, params=params) #note: this still has extra k divided 
+    
+    ## intra-compartment imitation:
+    
+    Sn_dot += rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    Sa_dot += -rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    
+    IAn_dot += rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    IAa_dot += -rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    
+    RAn_dot += rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    RAa_dot += -rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    
+    
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P*np.arctan(Delta_P)*(2/math.pi)
+    
+    # if Delta_P <0
+    
+    Sn_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    Sa_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    
+    IAn_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    IAa_dot += -rho*I_An*(S_a+R_Aa)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    
+    RAn_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+    RAa_dot += -rho*R_An*(I_Aa+S_a)*Delta_P*np.arctan(-Delta_P)*(2/math.pi)
+
+
+    deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, M_dot])
+    
+    return deriv
+
+
+'''
