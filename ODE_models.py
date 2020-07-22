@@ -386,3 +386,122 @@ def SEIRDan_system(State_vector,t,params):
 
     return deriv
 
+
+
+'''
+SIR  with behavior dynamics (Poletti -- compartment version)
+
+Identical to SIRan_system except that the payoff function has been adjusted.
+
+payoffB refers to our second proposed payoff change. This one involves a feedback
+between how many people are currently behaving in a certain way and the payoff.
+If many people are already adopting safer behavior, then my risk is already 
+decreased without my having to change behavior and inconvienice myself. 
+Once enough people have adopted the safer behavior, Delta_P will flip again since
+the risk of contracting the virus with normal behavior no longer outweighs the
+inconvience of adopting changed behavior.
+
+params is an optional argument which should be a list of 8 parameter values.
+By default it is the hardwired global parameters defined in this file. 
+
+Note that if you want to include this additional argument when calling odeint,
+you must write:
+    
+    odeint(SIRan_system, State_vector, t, args=(params,))
+    
+    * Note the comma.
+
+'''
+def SIRan_system_payoffB(State_vector,t, params):
+    
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    IS_dot  = p*(lambda_t*S_n + q*lambda_t*S_a) - gamma*I_S
+    IAn_dot = (1-p)*lambda_t*S_n - gamma*I_An
+    IAa_dot = (1-p)*q*lambda_t*S_a - gamma*I_Aa
+    
+    RS_dot  = gamma*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    
+    Delta_P = payoffB_difference(M, S_a, I_Aa, R_Aa, params)
+    
+    ## intra-compartment imitation:
+    
+    Sn_dot += rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    Sa_dot += -rho*(S_n*S_a*Delta_P + mu*S_a - mu*S_n)
+    
+    IAn_dot += rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    IAa_dot += -rho*(I_An*I_Aa*Delta_P + mu*I_Aa - mu*I_An)
+    
+    RAn_dot += rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    RAa_dot += -rho*(R_An*R_Aa*Delta_P + mu*R_Aa - mu*R_An)
+    
+    
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*S_a*(I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    Sa_dot += -rho*S_a*(I_An+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    IAn_dot +=  rho*I_Aa*(S_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    IAa_dot += -rho*I_Aa*(S_n+R_An)*Delta_P*np.heaviside(Delta_P,0)
+    
+    RAn_dot +=  rho*R_Aa*(I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    RAa_dot += -rho*R_Aa*(I_An+S_n)*Delta_P*np.heaviside(Delta_P,0)
+    
+    # if Delta_P <0
+    
+    Sn_dot +=  rho*S_n*(I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    Sa_dot += -rho*S_n*(I_Aa+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    IAn_dot +=  rho*I_An*(S_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    IAa_dot += -rho*I_An*(S_a+R_Aa)*Delta_P*np.heaviside(-Delta_P,0)
+    
+    RAn_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+    RAa_dot += -rho*R_An*(I_Aa+S_a)*Delta_P*np.heaviside(-Delta_P,0)
+
+
+    deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, M_dot])
+    
+    return deriv
+
+'''
+Helper function for Poletti model
+
+
+Gives P_n-P_a as guage of which behavior is more advantageous as a function 
+of percieved number of cases (ie. perceived risk).
+
+* Note: this is the version B altered payoff function. 
+
+'''
+def payoffB_difference(M, S_a, I_Aa, R_Aa, params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+#    P_n = -m_n*((1-q*(S_a, I_Aa, R_Aa))*(1-p)*(1/p) +1)*M
+#    P_a = -k - m_a**((1-q*(S_a, I_Aa, R_Aa))*(1-p)*(1/p) +1)*M
+#    Delta_P = P_n-P_a # k - (m_n-m_a)*((1-q*(S_a, I_Aa, R_Aa))*(1-p)*(1/p) +1)*M
+    
+    Delta_P  = 1-m*((1-q*(S_a + I_Aa + R_Aa))*(1-p)*(1/p) +1)*M  # note: divided by extra k that will be fixed with rho
+    
+    return Delta_P
