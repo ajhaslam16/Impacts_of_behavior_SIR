@@ -103,6 +103,25 @@ def payoff_difference(M, params):
     
     return Delta_P
 
+'''
+Helper function for Poletti model
+
+
+Gives P_n-P_a as guage of which behavior is more advantageous as a function 
+of percieved number of cases (ie. perceived risk).
+'''
+def payoff_difference_asym(M, params):
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+#    P_n = -m_n*M
+#    P_a = -k - m_a*M
+#    Delta_P = P_n-P_a # k - (m_n-m_a)*M  # most intuitive
+    
+    Delta_P  = 1-m*(1+(1-p)/p)*M  # k*(1-m*M) = the real Delta_P  # note: divided by extra k that will be fixed with rho
+    
+    return Delta_P
+
 
 
 '''
@@ -124,7 +143,7 @@ you must write:
     * Note the comma.
 
 '''
-def SIRan_system(State_vector,t, params):
+def SIRan_system(State_vector,t, params, asymp_payoff=False):
     
     
     gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
@@ -152,7 +171,10 @@ def SIRan_system(State_vector,t, params):
     ### second add the imitation and behavior switching dynamics ###
     M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
     
-    Delta_P = payoff_difference(M, params=params) #note: this still has extra k divided 
+    if asymp_payoff:
+        Delta_P = payoff_difference_asym(M, params=params)
+    else:
+        Delta_P = payoff_difference(M, params=params) #note: this still has extra k divided 
     
     ## intra-compartment imitation:
     
@@ -506,7 +528,8 @@ def payoffB_difference(M, S_a, I_Aa, R_Aa, params):
     
     return Delta_P
 
- '''
+
+'''
 
 This is another updated version of the Poletti model from equation (3) on page 83 of the
 2012 paper, now including an "Exposed" category. Again, this model is different from the model that Poletti et. al. use
@@ -603,10 +626,10 @@ def SEIRant_system(State_vector,t, params):
 
     return deriv
   
-  '''
+'''
   SIR model with heaviside
   for this and the above model, could introduce parameter that determines steepness of arctan.
-  '''
+'''
   
 def SIRant_system(State_vector,t, params):
     
@@ -680,5 +703,3 @@ def SIRant_system(State_vector,t, params):
     
     return deriv
 
-
-'''
