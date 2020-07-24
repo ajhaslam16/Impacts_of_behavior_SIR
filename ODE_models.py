@@ -524,7 +524,7 @@ def payoffB_difference(M, S_a, I_Aa, R_Aa, params):
 #    P_a = -k - m_a**((1-q*(S_a, I_Aa, R_Aa))*(1-p)*(1/p) +1)*M
 #    Delta_P = P_n-P_a # k - (m_n-m_a)*((1-q*(S_a, I_Aa, R_Aa))*(1-p)*(1/p) +1)*M
     
-    Delta_P  = 1-m*((1-q*(S_a + I_Aa + R_Aa))*(1-p)*(1/p) +1)*M  # note: divided by extra k that will be fixed with rho
+    Delta_P  = 1-m*((1-(1-q)*(S_a + I_Aa + R_Aa))*(1-p)*(1/p) +1)*M  # note: divided by extra k that will be fixed with rho
     
     return Delta_P
 
