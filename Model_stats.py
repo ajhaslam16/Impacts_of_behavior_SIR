@@ -66,3 +66,5 @@ def daily_peak(state_sim, time, peak_type='I_S', data_type='SIR'):
     
     return day_peak, peak_amount
 
+
+
