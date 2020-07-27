@@ -67,4 +67,30 @@ def daily_peak(state_sim, time, peak_type='I_S', data_type='SIR'):
     return day_peak, peak_amount
 
 
+'''
+Only designed for the SIR version where we are looking for peaks in I_S
 
+'''
+def peak_data(state_sim, time):
+    
+    
+    IS_data = state_sim[:,2]
+    is_inc_data = []
+    
+    for i in range(len(IS_data)-1):
+        is_inc_data.append(int(IS_data[i]<IS_data[i+1]))
+        
+    is_inc_data = np.array(is_inc_data)
+        
+    desired_sequence = np.concatenate((np.ones(200),np.zeros(200)))
+    peak_days = []
+    peak_heights = []
+    
+    for j in range(len(IS_data)-400):
+        
+        seq = is_inc_data[j:j+400]
+        if seq==desired_sequence:
+            peak_days.append(time[j+200])
+            peak_heights.append(IS_data[j+200])
+    
+    return peak_days, peak_heights
