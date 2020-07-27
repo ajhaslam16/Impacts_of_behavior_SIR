@@ -27,11 +27,10 @@ import math
 Set the parameters. Default for all is currently the baseline parameters from
 Poletti 2012.
 '''
-def get_params(beta_S=0.5, beta_A=0.5,
-              q=0.85, nu=(1/2.8), m=(1/0.01), rho=10,
-              mu=(10**(-8))):
+def get_params(beta_A=0.5,
+              q=0.85, nu=(1/2.8), m=(1/0.01), rho=10):
     
-    params = [beta_S, beta_A, q, nu, m, rho, mu]
+    params = [beta_A, q, nu, m, rho]
     
     return params
 
@@ -79,10 +78,12 @@ individuals in each respective infected compartments.
 '''
 def force_of_infection(I_S, I_An, I_Aa, params):
     
-    beta_S, beta_A, q, nu, m, rho, mu = params
+    beta_A, q, nu, m, rho = params
     p =2/3
-    gamma=1/7
+    gamma=1/10
     deathdelt = 0.02
+    mu = 0
+    beta_S = 0.1
 
     return beta_S*I_S+beta_A*I_An+q*beta_A*I_Aa
 
@@ -96,10 +97,12 @@ of percieved number of cases (ie. perceived risk).
 '''
 def payoff_difference(M, params):
     
-    beta_S, beta_A, q, nu, m, rho, mu = params
+    beta_A, q, nu, m, rho = params
     p =2/3
     gamma=1/7
     deathdelt = 0.02
+    mu = 0
+    beta_S = 0.1
     
 #    P_n = -m_n*M
 #    P_a = -k - m_a*M
@@ -238,8 +241,13 @@ they become infectious and (a)symptomatic.
 '''
 def SEIRan_system(State_vector,t, params):
     
-    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
-    
+    beta_A, q, nu, m, rho= params
+    p =2/3
+    gamma=1/10
+    deathdelt = 0.02
+    xi = 1/4.5
+    mu = 0
+    beta_S = 0.1
     epi_compartments = State_vector[:-1]
     behavior_variables = State_vector[-1]
     
