@@ -102,7 +102,7 @@ def payoff_difference(M, params):
     gamma=1/7
     deathdelt = 0.02
     mu = 0
-    beta_S = 0.1
+    beta_S = 0.7
     
 #    P_n = -m_n*M
 #    P_a = -k - m_a*M
@@ -243,11 +243,11 @@ def SEIRan_system(State_vector,t, params):
     
     beta_A, q, nu, m, rho= params
     p =2/3
-    gamma=1/10
+    gamma=1/7
     deathdelt = 0.02
-    xi = 1/4.5
+    xi = 1/3
     mu = 0
-    beta_S = 0.1
+    beta_S = 0.7
     epi_compartments = State_vector[:-1]
     behavior_variables = State_vector[-1]
     
