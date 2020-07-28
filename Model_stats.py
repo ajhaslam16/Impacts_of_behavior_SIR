@@ -71,7 +71,7 @@ def daily_peak(state_sim, time, peak_type='I_S', data_type='SIR'):
 Only designed for the SIR version where we are looking for peaks in I_S
 
 A peak is considered to be the middle of a four day period in which the first 
-two days show an increase in I_S and the second two days show a decrease in I_S.
+two days show an increase in I_S and the second two days show a decrease in I_S..
 '''
 def peak_data(state_sim, time):
     
@@ -91,7 +91,8 @@ def peak_data(state_sim, time):
     for j in range(len(IS_data)-400):
         
         seq = is_inc_data[j:j+400]
-        if seq==desired_sequence:
+        compare = seq==desired_sequence
+        if compare.all():
             peak_days.append(time[j+200])
             peak_heights.append(IS_data[j+200])
     
