@@ -218,6 +218,113 @@ def SIRan_system(State_vector,t, params, asymp_payoff=False):
     
     return deriv
 
+'''
+SIR  with behavior dynamics (Poletti -- compartment version)
+
+This is the version of the Poletti model from equation (3) on page 83 of the
+2012 paper. This model is different from the model that Poletti et. al. use
+in their analysis because it does not assume that x:(1-x) gives the same ratio
+for S, I_A, and R. 
+
+params is an optional argument which should be a list of 8 parameter values.
+By default it is the hardwired global parameters defined in this file. 
+
+Note that if you want to include this additional argument when calling odeint,
+you must write:
+    
+    odeint(SIRan_system, State_vector, t, args=(params,))
+    
+    * Note the comma.
+    
+~~~~~~~~~~~~~
+The difference here is that I am using a different relationship to mark the 
+rate of switching. Instead of having an activation function and strict linear 
+relationship, I have used a switching function that depends on Delta_P in the 
+following way:
+    
+    f(Delta_P) = (1/pi) * arctan(10(Delta_P - 0.33)) + 0.5
+    
+~~~~~~~~~~~~~~
+
+'''
+def SIRan_system_switchingB(State_vector,t, params):
+    
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    IS_dot  = p*(lambda_t*S_n + q*lambda_t*S_a) - gamma*I_S
+    IAn_dot = (1-p)*lambda_t*S_n - gamma*I_An
+    IAa_dot = (1-p)*q*lambda_t*S_a - gamma*I_Aa
+    
+    RS_dot  = gamma*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    
+    Delta_P = payoff_difference(M, params=params) #note: this still has extra k divided 
+    
+    
+    f_an = ((1/np.pi)*np.arctan(10*(Delta_P-0.33))+0.5)
+    f_na = ((1/np.pi)*np.arctan(10*(-Delta_P-0.33))+0.5)
+    
+    
+    ## random switching:
+    
+    Sn_dot += rho*(mu*S_a - mu*S_n)
+    Sa_dot += rho*(mu*S_n - mu*S_a)
+    
+    IAn_dot += rho*(mu*I_Aa - mu*I_An)
+    IAa_dot += rho*(mu*I_An - mu*I_Aa)
+    
+    RAn_dot += rho*(mu*R_Aa - mu*R_An)
+    RAa_dot += rho*(mu*R_An - mu*R_Aa)
+    
+    
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*(S_a*(S_n+I_An+R_An))*f_an
+    Sa_dot += -rho*(S_a*(S_n+I_An+R_An))*f_an
+    
+    IAn_dot +=  rho*(I_Aa*(S_n+I_An+R_An))*f_an
+    IAa_dot += -rho*(I_Aa*(S_n+I_An+R_An))*f_an
+    
+    RAn_dot +=  rho*(R_Aa*(S_n+I_An+R_An))*f_an
+    RAa_dot += -rho*(R_Aa*(S_n+I_An+R_An))*f_an
+    
+    # if Delta_P <0
+    
+    Sn_dot += -rho*(S_n*(S_a+I_Aa+R_Aa))*f_na
+    Sa_dot +=  rho*(S_n*(S_a+I_Aa+R_Aa))*f_na
+    
+    IAn_dot += -rho*(I_An*(S_a+I_Aa+R_Aa))*f_na
+    IAa_dot +=  rho*(I_An*(S_a+I_Aa+R_Aa))*f_na
+    
+    RAn_dot += -rho*(R_An*(S_a+I_Aa+R_Aa))*f_na
+    RAa_dot +=  rho*(R_An*(S_a+I_Aa+R_Aa))*f_na
+
+
+    deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, M_dot])
+    
+    return deriv
+
+
 
 '''
 This is another updated version of the Poletti model from equation (3) on page 83 of the
@@ -696,6 +803,113 @@ def SIRant_system(State_vector,t, params):
     
     RAn_dot +=  rho*R_An*(I_Aa+S_a)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
     RAa_dot += -rho*R_An*(I_Aa+S_a)*Delta_P*(np.arctan(-90*Delta_P)*(1/math.pi)+0.5)
+
+
+    deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
+                      RS_dot, RAn_dot, RAa_dot, M_dot])
+    
+    return deriv
+
+'''
+accessory version allows you to specify which kind of switching and which 
+kind of payoff function you want to have. 
+
+Note that we still consider the switching mechanism to be driven by 
+immitation dynamics. The difference now is that you have the option to 
+specify how the switching rate per iteraction depends on Delta_P.
+
+Payoff options:
+    - original (linear in M) = 0
+    - linear in M with consideration for asymptomatics = 1
+    - linear in M with consideration for asymptomatics & behavior = 2
+    
+Switching options:
+    - original (linear with heaviside activtaion) = 0
+    - linear with arctan activation = 1
+    - sigmoid switching (switchingB) = 2
+
+'''
+def SIRan_system_accessory(State_vector,t, params, switching=0, payoff=0):
+    
+    
+    gamma,beta_S, beta_A, q, p, nu, m, rho, mu, xi, dealthdelt = params
+    
+    epi_compartments = State_vector[:-1]
+    behavior_variables = State_vector[-1]
+    
+    S_n, S_a, I_S, I_An, I_Aa, R_S, R_An, R_Aa = epi_compartments
+    M = behavior_variables
+    
+    lambda_t = force_of_infection(I_S, I_An, I_Aa, params)
+    
+    ### first establish the transmission dynamics ###
+    Sn_dot = -lambda_t*S_n
+    Sa_dot = - q*lambda_t*S_a
+    
+    IS_dot  = p*(lambda_t*S_n + q*lambda_t*S_a) - gamma*I_S
+    IAn_dot = (1-p)*lambda_t*S_n - gamma*I_An
+    IAa_dot = (1-p)*q*lambda_t*S_a - gamma*I_Aa
+    
+    RS_dot  = gamma*I_S
+    RAn_dot = gamma*I_An
+    RAa_dot = gamma*I_Aa
+    
+    ### second add the imitation and behavior switching dynamics ###
+    M_dot = p*(lambda_t*S_n + q*lambda_t*S_a) - nu*M
+    
+    
+    if payoff == 1:
+        Delta_P = payoff_difference_asym(M, params=params)
+    elif payoff == 2:
+        Delta_P = payoffB_difference(M, S_a, I_Aa, R_Aa, params=params)
+    else:
+        Delta_P = payoff_difference(M, params=params)
+    
+    if switching == 1:
+        f_an = np.sqrt(Delta_P**2)*(np.arctan(90*(Delta_P))+0.5)
+        f_na = np.sqrt(Delta_P**2)*(np.arctan(90*(-Delta_P))+0.5)
+    elif switching == 2:
+        f_an = ((1/np.pi)*np.arctan(10*(Delta_P-0.33))+0.5)
+        f_na = ((1/np.pi)*np.arctan(10*(-Delta_P-0.33))+0.5)
+    else:
+        f_an = Delta_P*np.heaviside(Delta_P,0)
+        f_na = -Delta_P*np.heaviside(-Delta_P,0)
+    
+    ## random switching:
+    
+    Sn_dot += rho*(mu*S_a - mu*S_n)
+    Sa_dot += rho*(mu*S_n - mu*S_a)
+    
+    IAn_dot += rho*(mu*I_Aa - mu*I_An)
+    IAa_dot += rho*(mu*I_An - mu*I_Aa)
+    
+    RAn_dot += rho*(mu*R_Aa - mu*R_An)
+    RAa_dot += rho*(mu*R_An - mu*R_Aa)
+    
+    
+     ## inter-compartment imitation:
+    
+    # if Delta_P >0:
+    
+    Sn_dot +=  rho*(S_a*(S_n+I_An+R_An))*f_an
+    Sa_dot += -rho*(S_a*(S_n+I_An+R_An))*f_an
+    
+    IAn_dot +=  rho*(I_Aa*(S_n+I_An+R_An))*f_an
+    IAa_dot += -rho*(I_Aa*(S_n+I_An+R_An))*f_an
+    
+    RAn_dot +=  rho*(R_Aa*(S_n+I_An+R_An))*f_an
+    RAa_dot += -rho*(R_Aa*(S_n+I_An+R_An))*f_an
+    
+    # if Delta_P <0
+    
+    Sn_dot += -rho*(S_n*(S_a+I_Aa+R_Aa))*f_na
+    Sa_dot +=  rho*(S_n*(S_a+I_Aa+R_Aa))*f_na
+    
+    IAn_dot += -rho*(I_An*(S_a+I_Aa+R_Aa))*f_na
+    IAa_dot +=  rho*(I_An*(S_a+I_Aa+R_Aa))*f_na
+    
+    RAn_dot += -rho*(R_An*(S_a+I_Aa+R_Aa))*f_na
+    RAa_dot +=  rho*(R_An*(S_a+I_Aa+R_Aa))*f_na
 
 
     deriv = np.array([Sn_dot,Sa_dot,IS_dot, IAn_dot, IAa_dot,\
