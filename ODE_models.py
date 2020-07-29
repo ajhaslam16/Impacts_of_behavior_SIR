@@ -917,3 +917,173 @@ def SIRan_system_accessory(State_vector,t, params, switching=0, payoff=0):
     
     return deriv
 
+  '''
+  New equation for force_of_infections (for the age structuring model) - to incorporate both compartments.
+  '''
+  
+def force_of_infectioney(Ie_S, Ie_An, Ie_Aa, Iy_S, Iy_An, Iy_Aa):
+
+    return beta_S*(Ie_S+Iy_S)+beta_A*(Ie_An+Iy_An)+qe*beta_A*Ie_Aa+qy*beta_A*Iy_Aa
+
+
+  '''
+  New model - with SEIRD compartments, and variation in the parameters across age compartments.  Right now, the payoff functions
+  are the same in both categories - however, it would make sense to generalize in the future.  Switching dynamics determined in 
+  terms of age compartments.
+  '''
+def ODE_systembig(State_vector,t,params):
+    
+#    epi_compartments = State_vector[:num_compartments]
+#    behavior_variables = State_vector[num_compartments:]
+    
+    epi_compartments = State_vector[:-2]
+    behavior_variables = State_vector[-2:]
+    
+    Se_n, Se_a, Sy_n, Sy_a, Ee_n, Ee_a, Ey_n, Ey_a, Ie_S, Ie_An, Ie_Aa, Iy_S, Iy_An, Iy_Aa, De, Dy, Re_S, Re_An, Re_Aa, Ry_S, Ry_An, Ry_Aa = epi_compartments
+    Me, My = behavior_variables
+    
+    lambda_t = force_of_infectioney(Ie_S, Ie_An, Ie_Aa, Iy_S, Iy_An, Iy_Aa)
+    
+    ### first establish the transmission dynamics ###
+    Sen_dot = -lambda_t*Se_n
+    Sea_dot = - qe*lambda_t*Se_a #different rate of distancing among people who are in e
+    
+    Syn_dot = -lambda_t*Sy_n
+    Sya_dot = - qy*lambda_t*Sy_a #different rate of distancing among people who are in y
+    
+    Een_dot = lambda_t*Se_n - xi*Ee_n #currently, assume xi the same
+    Eea_dot = qe*lambda_t*Se_a - xi*Ee_a
+    
+    Eyn_dot = lambda_t*Sy_n - xi*Ey_n
+    Eya_dot = qy*lambda_t*Sy_a - xi*Ey_a
+    
+    IeS_dot  = pe*xi*(Ee_n + qe*Ee_a) - gammae*Ie_S
+    IeAn_dot = (1-pe)*xi*Ee_n - gammae*Ie_An
+    IeAa_dot = (1-pe)*qe*xi*Ee_a - gammae*Ie_Aa   
+    
+    IyS_dot  = py*xi*(Ey_n + qy*Ey_a) - gammay*Iy_S
+    IyAn_dot = (1-py)*xi*Ey_n - gammay*Iy_An
+    IyAa_dot = (1-py)*qy*xi*Ey_a - gammay*Iy_Aa
+    
+    '''
+     IeS_dot  = pe*xi*(Ee_n + Ee_a) - gammae*Ie_S
+    IeAn_dot = (1-pe)*xi*Ee_n - gammae*Ie_An
+    IeAa_dot = (1-pe)*qe*xi*Ee_a - gammae*Ie_Aa   
+    
+    IyS_dot  = py*xi*(Ey_n + Ey_a) - gammay*Iy_S
+    IyAn_dot = (1-py)*xi*Ey_n - gammay*Iy_An
+    IyAa_dot = (1-py)*qy*xi*Ey_a - gammay*Iy_Aa
+    '''
+    
+    ReS_dot  = (gammae - deathe)*Ie_S
+    ReAn_dot = gammae*Ie_An
+    ReAa_dot = gammae*Ie_Aa
+    
+    RyS_dot  = (gammay - deathy)*Iy_S
+    RyAn_dot = gammay*Iy_An
+    RyAa_dot = gammay*Iy_Aa
+    
+    
+    De_dot = deathe*Ie_S
+    Dy_dot = deathy*Iy_S
+    
+    
+    Deltae_P = payoff_difference(Me) #note: this still has extra k divided 
+    Deltay_P = payoff_difference(My)
+    
+    ## intra-compartment imitation:
+    
+    Sen_dot += rho*(Se_n*Se_a*Deltae_P + mue*Se_a - mue*Se_n)
+    Sea_dot += -rho*(Se_n*Se_a*Deltae_P + mue*Se_a - mue*Se_n)
+    
+    Syn_dot += rho*(Sy_n*Sy_a*Deltay_P + muy*Sy_a - muy*Sy_n)
+    Sya_dot += -rho*(Sy_n*Sy_a*Deltay_P + muy*Sy_a - muy*Sy_n)
+    
+    Een_dot += rho*(Ee_n*Ee_a*Deltae_P + mue*Ee_a - mue*Ee_n)
+    Eea_dot += -rho*(Ee_n*Ee_a*Deltae_P + mue*Ee_a - mue*Ee_n)
+    
+    Eyn_dot += rho*(Ey_n*Ey_a*Deltay_P + muy*Ey_a - muy*Ey_n)
+    Eya_dot += -rho*(Ey_n*Ey_a*Deltay_P + muy*Ey_a - muy*Ey_n)
+    
+    IeAn_dot += rho*(Ie_An*Ie_Aa*Deltae_P + mue*Ie_Aa - mue*Ie_An)
+    IeAa_dot += -rho*(Ie_An*Ie_Aa*Deltae_P + mue*Ie_Aa - mue*Ie_An)
+    
+    IyAn_dot += rho*(Iy_An*Iy_Aa*Deltay_P + muy*Iy_Aa - muy*Iy_An)
+    IyAa_dot += -rho*(Iy_An*Iy_Aa*Deltay_P + muy*Iy_Aa - muy*Iy_An)
+    
+    ReAn_dot += rho*(Re_An*Re_Aa*Deltae_P + mue*Re_Aa - mue*Re_An)
+    ReAa_dot += -rho*(Re_An*Re_Aa*Deltae_P + mue*Re_Aa - mue*Re_An)
+    
+    RyAn_dot += rho*(Ry_An*Ry_Aa*Deltay_P + muy*Ry_Aa - muy*Ry_An)
+    RyAa_dot += -rho*(Ry_An*Ry_Aa*Deltay_P + muy*Ry_Aa - muy*Ry_An)
+    
+    
+     ## inter-compartment imitation:
+        
+        ## right now, am assuming that only comparing with people within compartment
+    
+    # if Delta_P >0:
+    
+    Sen_dot +=  rho*Se_a*(Ee_n+Ie_An+Re_An)*Deltae_P*np.heaviside(Deltae_P,0)
+    Sea_dot += -rho*Se_a*(Ee_n+Ie_An+Re_An)*Deltae_P*np.heaviside(Deltae_P,0)
+    
+    Syn_dot +=  rho*Sy_a*(Ey_n+Iy_An+Ry_An)*Deltay_P*np.heaviside(Deltay_P,0)
+    Sya_dot += -rho*Sy_a*(Ey_n+Iy_An+Ry_An)*Deltay_P*np.heaviside(Deltay_P,0)
+    
+    Een_dot += rho*Ee_a*(Se_n+Ie_An+Re_An)*Deltae_P*np.heaviside(Deltae_P,0)
+    Eea_dot += -rho*Ee_a*(Se_n+Ie_An+Re_An)*Deltae_P*np.heaviside(Deltae_P,0)
+    
+    Eyn_dot += rho*Ey_a*(Sy_n+Iy_An+Ry_An)*Deltay_P*np.heaviside(Deltay_P,0)
+    Eya_dot += -rho*Ey_a*(Sy_n+Iy_An+Ry_An)*Deltay_P*np.heaviside(Deltay_P,0)
+    
+    IeAn_dot +=  rho*Ie_Aa*(Se_n+Ee_n+Re_An)*Deltae_P*np.heaviside(Deltae_P,0)
+    IeAa_dot += -rho*Ie_Aa*(Se_n+Ee_n+Re_An)*Deltae_P*np.heaviside(Deltae_P,0)
+    
+    IyAn_dot +=  rho*Iy_Aa*(Sy_n+Ey_n+Ry_An)*Deltay_P*np.heaviside(Deltay_P,0)
+    IyAa_dot += -rho*Iy_Aa*(Sy_n+Ey_n+Ry_An)*Deltay_P*np.heaviside(Deltay_P,0)
+    
+    ReAn_dot +=  rho*Re_Aa*(Ee_n+Ie_An+Se_n)*Deltae_P*np.heaviside(Deltae_P,0)
+    ReAa_dot += -rho*Re_Aa*(Ee_n+Ie_An+Se_n)*Deltae_P*np.heaviside(Deltae_P,0)
+    
+    RyAn_dot +=  rho*Ry_Aa*(Ey_n+Iy_An+Sy_n)*Deltay_P*np.heaviside(Deltay_P,0)
+    RyAa_dot += -rho*Ry_Aa*(Ey_n+Iy_An+Sy_n)*Deltay_P*np.heaviside(Deltay_P,0)
+    
+    # if Delta_P <0
+    
+    Sen_dot +=  rho*Se_n*(Ee_a+Ie_Aa+Re_Aa)*Deltae_P*np.heaviside(-Deltae_P,0)
+    Sea_dot += -rho*Se_n*(Ee_a+Ie_Aa+Re_Aa)*Deltae_P*np.heaviside(-Deltae_P,0)
+    
+    Een_dot += rho*Ee_n*(Se_a+Ie_Aa+Re_Aa)*Deltae_P*np.heaviside(-Deltae_P,0)
+    Eea_dot += -rho*Ee_n*(Se_a+Ie_Aa+Re_Aa)*Deltae_P*np.heaviside(-Deltae_P,0)
+    
+    IeAn_dot +=  rho*Ie_An*(Se_a+Ee_a+Re_Aa)*Deltae_P*np.heaviside(-Deltae_P,0)
+    IeAa_dot += -rho*Ie_An*(Se_a+Ee_a+Re_Aa)*Deltae_P*np.heaviside(-Deltae_P,0)
+    
+    ReAn_dot +=  rho*Re_An*(Ie_Aa+Ee_a+Se_a)*Deltae_P*np.heaviside(-Deltae_P,0)
+    ReAa_dot += -rho*Re_An*(Ie_Aa+Ee_a+Se_a)*Deltae_P*np.heaviside(-Deltae_P,0)
+    
+    Syn_dot +=  rho*Sy_n*(Ey_a+Iy_Aa+Ry_Aa)*Deltay_P*np.heaviside(-Deltay_P,0)
+    Sya_dot += -rho*Sy_n*(Ey_a+Iy_Aa+Ry_Aa)*Deltay_P*np.heaviside(-Deltay_P,0)
+    
+    Eyn_dot += rho*Ey_n*(Sy_a+Iy_Aa+Ry_Aa)*Deltay_P*np.heaviside(-Deltay_P,0)
+    Eya_dot += -rho*Ey_n*(Sy_a+Iy_Aa+Ry_Aa)*Deltay_P*np.heaviside(-Deltay_P,0)
+    
+    IyAn_dot +=  rho*Iy_An*(Sy_a+Ey_a+Ry_Aa)*Deltay_P*np.heaviside(-Deltay_P,0)
+    IyAa_dot += -rho*Iy_An*(Sy_a+Ey_a+Ry_Aa)*Deltay_P*np.heaviside(-Deltay_P,0)
+    
+    RyAn_dot +=  rho*Ry_An*(Iy_Aa+Ey_a+Sy_a)*Deltay_P*np.heaviside(-Deltay_P,0)
+    RyAa_dot += -rho*Ry_An*(Iy_Aa+Ey_a+Sy_a)*Deltay_P*np.heaviside(-Deltay_P,0)
+    
+    Me_dot = pe*(xi*(Ee_n + Ee_a+Ey_n + Ey_a)) - nu*Me #currently, determined by all exposed
+    My_dot = py*(xi*(Ee_n + Ee_a+Ey_n + Ey_a)) - nu*My
+    
+        
+    deriv = np.array([Sen_dot,Sea_dot,Syn_dot,Sya_dot,Een_dot,Eea_dot,Eyn_dot,Eya_dot,IeS_dot, IeAn_dot, IeAa_dot,IyS_dot, IyAn_dot, IyAa_dot, De_dot, Dy_dot, ReS_dot, ReAn_dot, ReAa_dot, RyS_dot, RyAn_dot, RyAa_dot, Me_dot, My_dot])
+
+    return deriv
+
+
+
+
+
+
