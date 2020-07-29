@@ -355,7 +355,7 @@ def SEIRan_system(State_vector,t, params):
     
     IS_dot  = p*xi*(E_n + E_a) - gamma*I_S
     IAn_dot = (1-p)*xi*E_n - gamma*I_An
-    IAa_dot = (1-p)*q*xi*E_a - gamma*I_Aa
+    IAa_dot = (1-p)*xi*E_a - gamma*I_Aa
     
     RS_dot  = gamma*I_S
     RAn_dot = gamma*I_An
@@ -959,16 +959,16 @@ def ODE_systembig(State_vector,t,params):
     
     IeS_dot  = pe*xi*(Ee_n + qe*Ee_a) - gammae*Ie_S
     IeAn_dot = (1-pe)*xi*Ee_n - gammae*Ie_An
-    IeAa_dot = (1-pe)*qe*xi*Ee_a - gammae*Ie_Aa   
+    IeAa_dot = (1-pe)*xi*Ee_a - gammae*Ie_Aa   
     
     IyS_dot  = py*xi*(Ey_n + qy*Ey_a) - gammay*Iy_S
     IyAn_dot = (1-py)*xi*Ey_n - gammay*Iy_An
-    IyAa_dot = (1-py)*qy*xi*Ey_a - gammay*Iy_Aa
+    IyAa_dot = (1-py)*xi*Ey_a - gammay*Iy_Aa
     
     '''
      IeS_dot  = pe*xi*(Ee_n + Ee_a) - gammae*Ie_S
     IeAn_dot = (1-pe)*xi*Ee_n - gammae*Ie_An
-    IeAa_dot = (1-pe)*qe*xi*Ee_a - gammae*Ie_Aa   
+    IeAa_dot = (1-pe)*xi*Ee_a - gammae*Ie_Aa   
     
     IyS_dot  = py*xi*(Ey_n + Ey_a) - gammay*Iy_S
     IyAn_dot = (1-py)*xi*Ey_n - gammay*Iy_An
